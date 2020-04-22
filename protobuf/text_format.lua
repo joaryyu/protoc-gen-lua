@@ -22,9 +22,11 @@ local table = table
 local ipairs = ipairs
 local tostring = tostring
 
-local descriptor = require "descriptor"
+local descriptor = require "Base.Protobuf.descriptor"
 
-module "text_format"
+
+local _M = {}
+local _ENV = _M
 
 function format(buffer)
     local len = string.len( buffer )	
@@ -77,3 +79,4 @@ function msg_format(msg)
     return table.concat(out)
 end
 
+return _M

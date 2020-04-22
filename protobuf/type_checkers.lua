@@ -20,7 +20,10 @@ local type = type
 local error = error
 local string = string
 
-module "type_checkers"
+
+local _M = {}
+local _ENV = _M
+
 function TypeChecker(acceptable_types)
     local acceptable_types = acceptable_types
 
@@ -69,3 +72,5 @@ function UnicodeValueChecker()
         end
     end
 end
+
+return _M

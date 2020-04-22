@@ -20,7 +20,10 @@ local table = table
 local rawset = rawset
 local error = error
 
-module "containers"
+--module "protobuf.containers"
+local _M = {}
+local _ENV = _M
+
 
 local _RCFC_meta = {
     add = function(self)
@@ -75,4 +78,4 @@ function RepeatedScalarFieldContainer(listener, type_checker)
     return setmetatable(o, _RSFC_meta)
 end
 
-
+return _M

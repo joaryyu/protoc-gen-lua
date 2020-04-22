@@ -16,7 +16,9 @@
 --
 
 local pb = require "pb"
-module "wire_format"
+
+local _M = {}
+local _ENV = _M
 
 WIRETYPE_VARINT = 0
 WIRETYPE_FIXED64 = 1
@@ -135,3 +137,4 @@ function TagByteSize(field_number)
     return _VarUInt64ByteSizeNoTag(PackTag(field_number, 0))
 end
 
+return _M

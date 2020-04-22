@@ -17,7 +17,8 @@
 --
 local setmetatable = setmetatable
 
-module "listener"
+local _M = {}
+local _ENV = _M
 
 local _null_listener = {
     Modified = function()
@@ -48,3 +49,4 @@ function Listener(parent_message)
     return setmetatable(o, _listener_meta)
 end
 
+return _M

@@ -16,7 +16,8 @@
 --------------------------------------------------------------------------------
 --
 
-module "descriptor"
+local _M = {}
+local _ENV = _M
 
 FieldDescriptor = {
     TYPE_DOUBLE         = 1,
@@ -62,3 +63,4 @@ FieldDescriptor = {
     LABEL_REPEATED      = 3,
     MAX_LABEL           = 3
 }
+return _M

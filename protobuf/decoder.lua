@@ -23,9 +23,15 @@ local error = error
 local print = print
 
 local pb = require "pb"
-local encoder = require "encoder"
-local wire_format = require "wire_format"
-module "decoder"
+local encoder = require "Base.Protobuf.encoder"
+local wire_format = require "Base.Protobuf.wire_format"
+local descriptor = require "Base.Protobuf.descriptor"
+local FieldDescriptor = descriptor.FieldDescriptor
+local convertToNumber = tonumber
+local touint64 = pb.touint64
+
+local _M = {}
+local _ENV = _M
 
 local _DecodeVarint = pb.varint_decoder
 local _DecodeSignedVarint = pb.signed_varint_decoder
@@ -33,10 +39,17 @@ local _DecodeSignedVarint = pb.signed_varint_decoder
 local _DecodeVarint32 = pb.varint_decoder
 local _DecodeSignedVarint32 = pb.signed_varint_decoder
 
+local _DecodeVarint64 = pb.varint_decoder64
+local _DecodeSignedVarint64 = pb.signed_varint_decoder64
+
 ReadTag = pb.read_tag
 
 local function _SimpleDecoder(wire_type, decode_value)
     return function(field_number, is_repeated, is_packed, key, new_default)
+		--force use packed decoder(proto3)
+		if (is_repeated) then
+			is_packed = true
+		end
         if is_packed then
             local DecodeVarint = _DecodeVarint
             return function (buffer, pos, pend, message, field_dict)
@@ -54,7 +67,8 @@ local function _SimpleDecoder(wire_type, decode_value)
                 local element
                 while pos < endpoint do
                     element, pos = decode_value(buffer, pos)
-                    value[#value + 1] = element
+					value:append(element)
+                    --value[#value + 1] = element
                 end
                 if pos > endpoint then
                     value:remove(#value)
@@ -86,7 +100,15 @@ local function _SimpleDecoder(wire_type, decode_value)
             end
         else
             return function (buffer, pos, pend, message, field_dict)
-                field_dict[key], pos = decode_value(buffer, pos)
+                local fieldValue
+                fieldValue, pos = decode_value(buffer, pos)
+                if (key.cpp_type == FieldDescriptor.CPPTYPE_INT64) then
+                    field_dict[key] = convertToNumber(fieldValue)
+                elseif (key.cpp_type == FieldDescriptor.CPPTYPE_UINT64) then
+                    field_dict[key] = touint64(fieldValue)
+                else
+                    field_dict[key] = fieldValue
+                end
                 if pos > pend then
                     field_dict[key] = nil
                     error('Truncated message.')
@@ -123,13 +145,13 @@ end
 Int32Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeSignedVarint32)
 EnumDecoder = Int32Decoder
 
-Int64Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeSignedVarint)
+Int64Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeSignedVarint64)
 
 UInt32Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint32)
-UInt64Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint)
+UInt64Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint64)
 
 SInt32Decoder = _ModifiedDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint32, wire_format.ZigZagDecode32)
-SInt64Decoder = _ModifiedDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint, wire_format.ZigZagDecode64)
+SInt64Decoder = _ModifiedDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint64, wire_format.ZigZagDecode64)
 
 Fixed32Decoder  = _StructPackDecoder(wire_format.WIRETYPE_FIXED32, 4, string.byte('I'))
 Fixed64Decoder  = _StructPackDecoder(wire_format.WIRETYPE_FIXED64, 8, string.byte('Q'))
@@ -284,7 +306,7 @@ end
 
 function _SkipFixed64(buffer, pos, pend)
     pos = pos + 8
-    if pos > pend then 
+    if pos > pend then
         error('Truncated message.')
     end
     return pos
@@ -335,3 +357,5 @@ function _FieldSkipper()
 end
 
 SkipField = _FieldSkipper()
+
+return _M
